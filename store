@@ -1,0 +1,2044 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 14.2
+-- Dumped by pg_dump version 14.2
+
+-- Started on 2022-09-01 04:48:50
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 210 (class 1259 OID 41290)
+-- Name: categoria; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.categoria (
+    id integer NOT NULL,
+    categoria character varying(255) NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.categoria OWNER TO postgres;
+
+--
+-- TOC entry 209 (class 1259 OID 41289)
+-- Name: categoria_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.categoria_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.categoria_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3583 (class 0 OID 0)
+-- Dependencies: 209
+-- Name: categoria_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.categoria_id_seq OWNED BY public.categoria.id;
+
+
+--
+-- TOC entry 224 (class 1259 OID 41368)
+-- Name: colors; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.colors (
+    id integer NOT NULL,
+    color character varying(255),
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.colors OWNER TO postgres;
+
+--
+-- TOC entry 223 (class 1259 OID 41367)
+-- Name: colors_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.colors_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.colors_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3584 (class 0 OID 0)
+-- Dependencies: 223
+-- Name: colors_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.colors_id_seq OWNED BY public.colors.id;
+
+
+--
+-- TOC entry 222 (class 1259 OID 41358)
+-- Name: locals; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.locals (
+    id integer NOT NULL,
+    direccion text NOT NULL,
+    nombre text NOT NULL,
+    trabajadores integer NOT NULL,
+    tipo integer NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.locals OWNER TO postgres;
+
+--
+-- TOC entry 230 (class 1259 OID 41420)
+-- Name: vale_de_venta; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.vale_de_venta (
+    id integer NOT NULL,
+    fecha timestamp with time zone NOT NULL,
+    descripcion text NOT NULL,
+    costo numeric NOT NULL,
+    precio numeric NOT NULL,
+    comision numeric NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL,
+    id_producto integer,
+    id_trabajador integer,
+    id_local integer,
+    id_color integer
+);
+
+
+ALTER TABLE public.vale_de_venta OWNER TO postgres;
+
+--
+-- TOC entry 248 (class 1259 OID 41569)
+-- Name: ventas_year; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.ventas_year AS
+ SELECT date_part('month'::text, vale_de_venta.fecha) AS mes,
+    sum(vale_de_venta.precio) AS importe,
+    sum(vale_de_venta.comision) AS comision,
+    vale_de_venta.id_local,
+    locals.nombre
+   FROM public.vale_de_venta,
+    public.locals
+  WHERE ((date_trunc('year'::text, vale_de_venta.fecha) = date_trunc('year'::text, (CURRENT_DATE)::timestamp with time zone)) AND (locals.id = vale_de_venta.id_local))
+  GROUP BY vale_de_venta.id_local, (date_part('month'::text, vale_de_venta.fecha)), locals.nombre;
+
+
+ALTER TABLE public.ventas_year OWNER TO postgres;
+
+--
+-- TOC entry 252 (class 1259 OID 41600)
+-- Name: cuarto_trimestre; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.cuarto_trimestre AS
+ SELECT ventas_year.mes,
+    sum(ventas_year.importe) AS importe,
+    sum(ventas_year.comision) AS comision,
+    ventas_year.id_local,
+    ventas_year.nombre
+   FROM public.ventas_year
+  WHERE ((ventas_year.mes >= (10)::double precision) AND (ventas_year.mes <= (12)::double precision))
+  GROUP BY ventas_year.id_local, ventas_year.nombre, ventas_year.mes;
+
+
+ALTER TABLE public.cuarto_trimestre OWNER TO postgres;
+
+--
+-- TOC entry 256 (class 1259 OID 41617)
+-- Name: cuarto_trimestre_empleado; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.cuarto_trimestre_empleado AS
+ SELECT date_part('month'::text, vale_de_venta.fecha) AS mes,
+    sum(vale_de_venta.precio) AS importe,
+    sum(vale_de_venta.comision) AS comision,
+    vale_de_venta.id_trabajador
+   FROM public.vale_de_venta
+  WHERE ((date_part('month'::text, vale_de_venta.fecha) >= (10)::double precision) AND (date_part('month'::text, vale_de_venta.fecha) <= (12)::double precision))
+  GROUP BY vale_de_venta.id_trabajador, (date_part('month'::text, vale_de_venta.fecha));
+
+
+ALTER TABLE public.cuarto_trimestre_empleado OWNER TO postgres;
+
+--
+-- TOC entry 214 (class 1259 OID 41311)
+-- Name: curvaturas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.curvaturas (
+    id integer NOT NULL,
+    curvatura character varying(255) NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.curvaturas OWNER TO postgres;
+
+--
+-- TOC entry 213 (class 1259 OID 41310)
+-- Name: curvaturas_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.curvaturas_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.curvaturas_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3585 (class 0 OID 0)
+-- Dependencies: 213
+-- Name: curvaturas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.curvaturas_id_seq OWNED BY public.curvaturas.id;
+
+
+--
+-- TOC entry 216 (class 1259 OID 41319)
+-- Name: materials; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.materials (
+    id integer NOT NULL,
+    material character varying(255) NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.materials OWNER TO postgres;
+
+--
+-- TOC entry 226 (class 1259 OID 41376)
+-- Name: producto_exists; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.producto_exists (
+    id integer NOT NULL,
+    descripcion character varying(255) NOT NULL,
+    costo numeric NOT NULL,
+    precio numeric NOT NULL,
+    comision numeric NOT NULL,
+    merma_c boolean NOT NULL,
+    total integer NOT NULL,
+    almacen integer NOT NULL,
+    area_de_venta integer NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL,
+    id_producto integer,
+    id_talla integer,
+    id_local integer,
+    id_color integer
+);
+
+
+ALTER TABLE public.producto_exists OWNER TO postgres;
+
+--
+-- TOC entry 218 (class 1259 OID 41327)
+-- Name: productos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.productos (
+    id integer NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL,
+    id_subcategoria integer,
+    id_curvatura integer,
+    id_material integer
+);
+
+
+ALTER TABLE public.productos OWNER TO postgres;
+
+--
+-- TOC entry 212 (class 1259 OID 41298)
+-- Name: sub_categoria; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.sub_categoria (
+    id integer NOT NULL,
+    sub_categoria character varying(255) NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL,
+    id_categoria integer
+);
+
+
+ALTER TABLE public.sub_categoria OWNER TO postgres;
+
+--
+-- TOC entry 220 (class 1259 OID 41350)
+-- Name: tallas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.tallas (
+    id integer NOT NULL,
+    talla character varying(255) NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.tallas OWNER TO postgres;
+
+--
+-- TOC entry 241 (class 1259 OID 41522)
+-- Name: existencia; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.existencia AS
+ SELECT pre_existencia.id_existencia,
+    pre_existencia.descripcion,
+    pre_existencia.costo,
+    pre_existencia.precio,
+    pre_existencia.comision,
+    pre_existencia.merma_c,
+    pre_existencia.total,
+    pre_existencia.almacen,
+    pre_existencia.area_de_venta,
+    pre_existencia.id_producto,
+    sub_categoria.sub_categoria,
+    curvaturas.curvatura,
+    materials.material,
+    tallas.talla,
+    locals.nombre,
+    colors.color,
+    pre_existencia.id_subcategoria,
+    pre_existencia.id_curvatura,
+    pre_existencia.id_material,
+    pre_existencia.id_talla,
+    pre_existencia.id_local,
+    pre_existencia.id_color
+   FROM ( SELECT producto_exists.id AS id_existencia,
+            producto_exists.descripcion,
+            producto_exists.costo,
+            producto_exists.precio,
+            producto_exists.comision,
+            producto_exists.merma_c,
+            producto_exists.total,
+            producto_exists.almacen,
+            producto_exists.area_de_venta,
+            productos.id_subcategoria,
+            productos.id_curvatura,
+            productos.id_material,
+            producto_exists.id_producto,
+            producto_exists.id_talla,
+            producto_exists.id_local,
+            producto_exists.id_color
+           FROM (public.producto_exists
+             JOIN public.productos ON ((producto_exists.id_producto = productos.id)))) pre_existencia,
+    public.sub_categoria,
+    public.curvaturas,
+    public.materials,
+    public.tallas,
+    public.locals,
+    public.colors
+  WHERE ((pre_existencia.id_talla = tallas.id) AND (pre_existencia.id_local = locals.id) AND (pre_existencia.id_color = colors.id) AND (pre_existencia.id_subcategoria = sub_categoria.id) AND (pre_existencia.id_curvatura = curvaturas.id) AND (pre_existencia.id_material = materials.id));
+
+
+ALTER TABLE public.existencia OWNER TO postgres;
+
+--
+-- TOC entry 238 (class 1259 OID 41500)
+-- Name: gastos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.gastos (
+    id integer NOT NULL,
+    fecha date NOT NULL,
+    monto integer NOT NULL,
+    descripcion text NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL,
+    id_tipogasto integer
+);
+
+
+ALTER TABLE public.gastos OWNER TO postgres;
+
+--
+-- TOC entry 237 (class 1259 OID 41499)
+-- Name: gastos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.gastos_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.gastos_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3586 (class 0 OID 0)
+-- Dependencies: 237
+-- Name: gastos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.gastos_id_seq OWNED BY public.gastos.id;
+
+
+--
+-- TOC entry 236 (class 1259 OID 41492)
+-- Name: tipo_gastos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.tipo_gastos (
+    id integer NOT NULL,
+    tipo_gasto character varying(255) NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.tipo_gastos OWNER TO postgres;
+
+--
+-- TOC entry 243 (class 1259 OID 41532)
+-- Name: gastos_view; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.gastos_view AS
+ SELECT gastos.id,
+    gastos.fecha,
+    gastos.monto,
+    gastos.descripcion,
+    tipo_gastos.tipo_gasto
+   FROM public.tipo_gastos,
+    public.gastos
+  WHERE (gastos.id_tipogasto = tipo_gastos.id);
+
+
+ALTER TABLE public.gastos_view OWNER TO postgres;
+
+--
+-- TOC entry 221 (class 1259 OID 41357)
+-- Name: locals_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.locals_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.locals_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3587 (class 0 OID 0)
+-- Dependencies: 221
+-- Name: locals_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.locals_id_seq OWNED BY public.locals.id;
+
+
+--
+-- TOC entry 240 (class 1259 OID 41514)
+-- Name: materia_primas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.materia_primas (
+    id integer NOT NULL,
+    materia_prima character varying(255) NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.materia_primas OWNER TO postgres;
+
+--
+-- TOC entry 239 (class 1259 OID 41513)
+-- Name: materia_primas_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.materia_primas_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.materia_primas_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3588 (class 0 OID 0)
+-- Dependencies: 239
+-- Name: materia_primas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.materia_primas_id_seq OWNED BY public.materia_primas.id;
+
+
+--
+-- TOC entry 215 (class 1259 OID 41318)
+-- Name: materials_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.materials_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.materials_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3589 (class 0 OID 0)
+-- Dependencies: 215
+-- Name: materials_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.materials_id_seq OWNED BY public.materials.id;
+
+
+--
+-- TOC entry 232 (class 1259 OID 41449)
+-- Name: mermas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mermas (
+    id integer NOT NULL,
+    costo numeric NOT NULL,
+    unidades integer NOT NULL,
+    descripcion text NOT NULL,
+    valor numeric NOT NULL,
+    fecha timestamp with time zone NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL,
+    id_producto integer,
+    id_trabajador integer,
+    id_local integer
+);
+
+
+ALTER TABLE public.mermas OWNER TO postgres;
+
+--
+-- TOC entry 231 (class 1259 OID 41448)
+-- Name: mermas_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.mermas_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.mermas_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3590 (class 0 OID 0)
+-- Dependencies: 231
+-- Name: mermas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.mermas_id_seq OWNED BY public.mermas.id;
+
+
+--
+-- TOC entry 249 (class 1259 OID 41588)
+-- Name: primer_trimestre; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.primer_trimestre AS
+ SELECT ventas_year.mes,
+    sum(ventas_year.importe) AS importe,
+    sum(ventas_year.comision) AS comision,
+    ventas_year.id_local,
+    ventas_year.nombre
+   FROM public.ventas_year
+  WHERE ((ventas_year.mes >= (1)::double precision) AND (ventas_year.mes <= (3)::double precision))
+  GROUP BY ventas_year.id_local, ventas_year.nombre, ventas_year.mes;
+
+
+ALTER TABLE public.primer_trimestre OWNER TO postgres;
+
+--
+-- TOC entry 253 (class 1259 OID 41605)
+-- Name: primer_trimestre_empleado; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.primer_trimestre_empleado AS
+ SELECT date_part('month'::text, vale_de_venta.fecha) AS mes,
+    sum(vale_de_venta.precio) AS importe,
+    sum(vale_de_venta.comision) AS comision,
+    vale_de_venta.id_trabajador
+   FROM public.vale_de_venta
+  WHERE ((date_part('month'::text, vale_de_venta.fecha) >= (1)::double precision) AND (date_part('month'::text, vale_de_venta.fecha) <= (3)::double precision))
+  GROUP BY vale_de_venta.id_trabajador, (date_part('month'::text, vale_de_venta.fecha));
+
+
+ALTER TABLE public.primer_trimestre_empleado OWNER TO postgres;
+
+--
+-- TOC entry 225 (class 1259 OID 41375)
+-- Name: producto_exists_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.producto_exists_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.producto_exists_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3591 (class 0 OID 0)
+-- Dependencies: 225
+-- Name: producto_exists_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.producto_exists_id_seq OWNED BY public.producto_exists.id;
+
+
+--
+-- TOC entry 217 (class 1259 OID 41326)
+-- Name: productos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.productos_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.productos_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3592 (class 0 OID 0)
+-- Dependencies: 217
+-- Name: productos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.productos_id_seq OWNED BY public.productos.id;
+
+
+--
+-- TOC entry 234 (class 1259 OID 41473)
+-- Name: reparacions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.reparacions (
+    id integer NOT NULL,
+    contacto character varying(255) NOT NULL,
+    unidades integer NOT NULL,
+    descripcion text NOT NULL,
+    fecha timestamp with time zone NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL,
+    id_producto integer,
+    id_local integer
+);
+
+
+ALTER TABLE public.reparacions OWNER TO postgres;
+
+--
+-- TOC entry 233 (class 1259 OID 41472)
+-- Name: reparacions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.reparacions_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.reparacions_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3593 (class 0 OID 0)
+-- Dependencies: 233
+-- Name: reparacions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.reparacions_id_seq OWNED BY public.reparacions.id;
+
+
+--
+-- TOC entry 244 (class 1259 OID 41536)
+-- Name: ventas_hoy; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.ventas_hoy AS
+ SELECT sum(vale_de_venta.precio) AS importe,
+    sum(vale_de_venta.comision) AS comision,
+    vale_de_venta.id_local,
+    locals.nombre
+   FROM public.vale_de_venta,
+    public.locals
+  WHERE ((date_trunc('day'::text, vale_de_venta.fecha) = date_trunc('day'::text, (CURRENT_DATE)::timestamp with time zone)) AND (locals.id = vale_de_venta.id_local))
+  GROUP BY vale_de_venta.id_local, locals.nombre;
+
+
+ALTER TABLE public.ventas_hoy OWNER TO postgres;
+
+--
+-- TOC entry 246 (class 1259 OID 41555)
+-- Name: ventas_semana_xlocal; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.ventas_semana_xlocal AS
+ SELECT EXTRACT(isodow FROM vale_de_venta.fecha) AS weekday,
+    sum(vale_de_venta.precio) AS importe,
+    sum(vale_de_venta.comision) AS comision,
+    vale_de_venta.id_local,
+    locals.nombre
+   FROM public.vale_de_venta,
+    public.locals
+  WHERE ((date_trunc('week'::text, vale_de_venta.fecha) = date_trunc('week'::text, (CURRENT_DATE)::timestamp with time zone)) AND (locals.id = vale_de_venta.id_local))
+  GROUP BY vale_de_venta.id_local, (EXTRACT(isodow FROM vale_de_venta.fecha)), locals.nombre;
+
+
+ALTER TABLE public.ventas_semana_xlocal OWNER TO postgres;
+
+--
+-- TOC entry 247 (class 1259 OID 41560)
+-- Name: ventas_semana; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.ventas_semana AS
+ SELECT ventas_semana_xlocal.weekday,
+    sum(ventas_semana_xlocal.importe) AS importe,
+    sum(ventas_semana_xlocal.comision) AS comision
+   FROM public.ventas_semana_xlocal
+  GROUP BY ventas_semana_xlocal.weekday;
+
+
+ALTER TABLE public.ventas_semana OWNER TO postgres;
+
+--
+-- TOC entry 258 (class 1259 OID 41655)
+-- Name: resumen; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.resumen AS
+ SELECT sum(ventas_hoy.importe) AS importe,
+    sum(ventas_hoy.comision) AS comision,
+    ( SELECT sum(gastos.monto) AS sum
+           FROM public.gastos
+          WHERE (date_trunc('day'::text, (gastos.fecha)::timestamp with time zone) = date_trunc('day'::text, (CURRENT_DATE)::timestamp with time zone))) AS gastos,
+    sum(ventas_semana.importe) AS importew,
+    sum(ventas_semana.comision) AS comisionw,
+    ( SELECT sum(gastos.monto) AS sum
+           FROM public.gastos
+          WHERE (date_trunc('week'::text, (gastos.fecha)::timestamp with time zone) = date_trunc('week'::text, (CURRENT_DATE)::timestamp with time zone))) AS gastosw,
+    ( SELECT ventas_semana_1.importe
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (1)::numeric)) AS l,
+    ( SELECT ventas_semana_1.comision
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (1)::numeric)) AS cl,
+    ( SELECT ventas_semana_1.importe
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (2)::numeric)) AS m,
+    ( SELECT ventas_semana_1.comision
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (2)::numeric)) AS cm,
+    ( SELECT ventas_semana_1.importe
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (3)::numeric)) AS w,
+    ( SELECT ventas_semana_1.comision
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (3)::numeric)) AS cw,
+    ( SELECT ventas_semana_1.importe
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (4)::numeric)) AS j,
+    ( SELECT ventas_semana_1.comision
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (4)::numeric)) AS cj,
+    ( SELECT ventas_semana_1.importe
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (5)::numeric)) AS v,
+    ( SELECT ventas_semana_1.comision
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (5)::numeric)) AS cv,
+    ( SELECT ventas_semana_1.importe
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (6)::numeric)) AS s,
+    ( SELECT ventas_semana_1.comision
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (6)::numeric)) AS cs,
+    ( SELECT ventas_semana_1.importe
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (7)::numeric)) AS d,
+    ( SELECT ventas_semana_1.comision
+           FROM public.ventas_semana ventas_semana_1
+          WHERE (ventas_semana_1.weekday = (7)::numeric)) AS cd,
+    sum(ventas_year.importe) AS importey,
+    sum(ventas_year.comision) AS comisiony,
+    ( SELECT sum(gastos.monto) AS sum
+           FROM public.gastos
+          WHERE (date_trunc('year'::text, (gastos.fecha)::timestamp with time zone) = date_trunc('year'::text, (CURRENT_DATE)::timestamp with time zone))) AS gastosy,
+    sum(cuarto_trimestre.importe) AS ctimporte,
+    sum(cuarto_trimestre.comision) AS ctcomision
+   FROM public.ventas_hoy,
+    public.ventas_semana,
+    public.ventas_year,
+    public.cuarto_trimestre;
+
+
+ALTER TABLE public.resumen OWNER TO postgres;
+
+--
+-- TOC entry 250 (class 1259 OID 41592)
+-- Name: segundo_trimestre; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.segundo_trimestre AS
+ SELECT ventas_year.mes,
+    sum(ventas_year.importe) AS importe,
+    sum(ventas_year.comision) AS comision,
+    ventas_year.id_local,
+    ventas_year.nombre
+   FROM public.ventas_year
+  WHERE ((ventas_year.mes >= (4)::double precision) AND (ventas_year.mes <= (6)::double precision))
+  GROUP BY ventas_year.id_local, ventas_year.nombre, ventas_year.mes;
+
+
+ALTER TABLE public.segundo_trimestre OWNER TO postgres;
+
+--
+-- TOC entry 254 (class 1259 OID 41609)
+-- Name: segundo_trimestre_empleado; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.segundo_trimestre_empleado AS
+ SELECT date_part('month'::text, vale_de_venta.fecha) AS mes,
+    sum(vale_de_venta.precio) AS importe,
+    sum(vale_de_venta.comision) AS comision,
+    vale_de_venta.id_trabajador
+   FROM public.vale_de_venta
+  WHERE ((date_part('month'::text, vale_de_venta.fecha) >= (4)::double precision) AND (date_part('month'::text, vale_de_venta.fecha) <= (6)::double precision))
+  GROUP BY vale_de_venta.id_trabajador, (date_part('month'::text, vale_de_venta.fecha));
+
+
+ALTER TABLE public.segundo_trimestre_empleado OWNER TO postgres;
+
+--
+-- TOC entry 211 (class 1259 OID 41297)
+-- Name: sub_categoria_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.sub_categoria_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.sub_categoria_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3594 (class 0 OID 0)
+-- Dependencies: 211
+-- Name: sub_categoria_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.sub_categoria_id_seq OWNED BY public.sub_categoria.id;
+
+
+--
+-- TOC entry 219 (class 1259 OID 41349)
+-- Name: tallas_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.tallas_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.tallas_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3595 (class 0 OID 0)
+-- Dependencies: 219
+-- Name: tallas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.tallas_id_seq OWNED BY public.tallas.id;
+
+
+--
+-- TOC entry 251 (class 1259 OID 41596)
+-- Name: tercer_trimestre; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.tercer_trimestre AS
+ SELECT ventas_year.mes,
+    sum(ventas_year.importe) AS importe,
+    sum(ventas_year.comision) AS comision,
+    ventas_year.id_local,
+    ventas_year.nombre
+   FROM public.ventas_year
+  WHERE ((ventas_year.mes >= (7)::double precision) AND (ventas_year.mes <= (9)::double precision))
+  GROUP BY ventas_year.id_local, ventas_year.nombre, ventas_year.mes;
+
+
+ALTER TABLE public.tercer_trimestre OWNER TO postgres;
+
+--
+-- TOC entry 255 (class 1259 OID 41613)
+-- Name: tercer_trimestre_empleado; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.tercer_trimestre_empleado AS
+ SELECT date_part('month'::text, vale_de_venta.fecha) AS mes,
+    sum(vale_de_venta.precio) AS importe,
+    sum(vale_de_venta.comision) AS comision,
+    vale_de_venta.id_trabajador
+   FROM public.vale_de_venta
+  WHERE ((date_part('month'::text, vale_de_venta.fecha) >= (7)::double precision) AND (date_part('month'::text, vale_de_venta.fecha) <= (9)::double precision))
+  GROUP BY vale_de_venta.id_trabajador, (date_part('month'::text, vale_de_venta.fecha));
+
+
+ALTER TABLE public.tercer_trimestre_empleado OWNER TO postgres;
+
+--
+-- TOC entry 235 (class 1259 OID 41491)
+-- Name: tipo_gastos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.tipo_gastos_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.tipo_gastos_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3596 (class 0 OID 0)
+-- Dependencies: 235
+-- Name: tipo_gastos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.tipo_gastos_id_seq OWNED BY public.tipo_gastos.id;
+
+
+--
+-- TOC entry 228 (class 1259 OID 41405)
+-- Name: trabajadors; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.trabajadors (
+    id integer NOT NULL,
+    ci character varying(255) NOT NULL,
+    direccion character varying(255) NOT NULL,
+    nombre character varying(255) NOT NULL,
+    primer_apellido character varying(255) NOT NULL,
+    segundo_apellido character varying(255) NOT NULL,
+    contacto text NOT NULL,
+    salario_base integer NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL,
+    id_local integer
+);
+
+
+ALTER TABLE public.trabajadors OWNER TO postgres;
+
+--
+-- TOC entry 227 (class 1259 OID 41404)
+-- Name: trabajadors_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.trabajadors_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.trabajadors_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3597 (class 0 OID 0)
+-- Dependencies: 227
+-- Name: trabajadors_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.trabajadors_id_seq OWNED BY public.trabajadors.id;
+
+
+--
+-- TOC entry 257 (class 1259 OID 41621)
+-- Name: trimestres_trabajadores; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.trimestres_trabajadores AS
+ SELECT '1'::text AS trimestre,
+    sum(primer_trimestre_empleado.importe) AS importe,
+    sum(primer_trimestre_empleado.comision) AS comision,
+    primer_trimestre_empleado.id_trabajador,
+    trabajadors.nombre
+   FROM public.primer_trimestre_empleado,
+    public.trabajadors
+  WHERE (primer_trimestre_empleado.id_trabajador = trabajadors.id)
+  GROUP BY primer_trimestre_empleado.id_trabajador, trabajadors.nombre
+UNION
+ SELECT '2'::text AS trimestre,
+    sum(segundo_trimestre_empleado.importe) AS importe,
+    sum(segundo_trimestre_empleado.comision) AS comision,
+    segundo_trimestre_empleado.id_trabajador,
+    trabajadors.nombre
+   FROM public.segundo_trimestre_empleado,
+    public.trabajadors
+  WHERE (segundo_trimestre_empleado.id_trabajador = trabajadors.id)
+  GROUP BY segundo_trimestre_empleado.id_trabajador, trabajadors.nombre
+UNION
+ SELECT '3'::text AS trimestre,
+    sum(tercer_trimestre_empleado.importe) AS importe,
+    sum(tercer_trimestre_empleado.comision) AS comision,
+    tercer_trimestre_empleado.id_trabajador,
+    trabajadors.nombre
+   FROM public.tercer_trimestre_empleado,
+    public.trabajadors
+  WHERE (tercer_trimestre_empleado.id_trabajador = trabajadors.id)
+  GROUP BY tercer_trimestre_empleado.id_trabajador, trabajadors.nombre
+UNION
+ SELECT '4'::text AS trimestre,
+    sum(cuarto_trimestre_empleado.importe) AS importe,
+    sum(cuarto_trimestre_empleado.comision) AS comision,
+    cuarto_trimestre_empleado.id_trabajador,
+    trabajadors.nombre
+   FROM public.cuarto_trimestre_empleado,
+    public.trabajadors
+  WHERE (cuarto_trimestre_empleado.id_trabajador = trabajadors.id)
+  GROUP BY cuarto_trimestre_empleado.id_trabajador, trabajadors.nombre;
+
+
+ALTER TABLE public.trimestres_trabajadores OWNER TO postgres;
+
+--
+-- TOC entry 229 (class 1259 OID 41419)
+-- Name: vale_de_venta_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.vale_de_venta_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.vale_de_venta_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3598 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: vale_de_venta_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.vale_de_venta_id_seq OWNED BY public.vale_de_venta.id;
+
+
+--
+-- TOC entry 242 (class 1259 OID 41527)
+-- Name: vales; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.vales AS
+ SELECT pre_vales.id,
+    sub_categoria.sub_categoria,
+    curvaturas.curvatura,
+    materials.material,
+    colors.color,
+    pre_vales.descripcion,
+    pre_vales.fecha,
+    pre_vales.costo,
+    pre_vales.precio,
+    pre_vales.comision,
+    trabajadors.nombre,
+    trabajadors.primer_apellido,
+    trabajadors.segundo_apellido,
+    locals.nombre AS tienda
+   FROM public.sub_categoria,
+    public.curvaturas,
+    public.materials,
+    public.colors,
+    ( SELECT vale_de_venta.id,
+            vale_de_venta.fecha,
+            vale_de_venta.descripcion,
+            vale_de_venta.costo,
+            vale_de_venta.precio,
+            vale_de_venta.comision,
+            vale_de_venta.id_trabajador,
+            vale_de_venta.id_local,
+            vale_de_venta.id_color,
+            productos.id_subcategoria,
+            productos.id_curvatura,
+            productos.id_material
+           FROM (public.vale_de_venta
+             JOIN public.productos ON ((vale_de_venta.id_producto = productos.id)))) pre_vales,
+    public.trabajadors,
+    public.locals
+  WHERE ((sub_categoria.id = pre_vales.id_subcategoria) AND (curvaturas.id = pre_vales.id_curvatura) AND (materials.id = pre_vales.id_material) AND (colors.id = pre_vales.id_color) AND (trabajadors.id = pre_vales.id_trabajador) AND (locals.id = pre_vales.id_local));
+
+
+ALTER TABLE public.vales OWNER TO postgres;
+
+--
+-- TOC entry 245 (class 1259 OID 41550)
+-- Name: ventas_mes; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.ventas_mes AS
+ SELECT vale_de_venta.fecha,
+    sum(vale_de_venta.precio) AS importe,
+    sum(vale_de_venta.comision) AS comision,
+    vale_de_venta.id_local,
+    locals.nombre
+   FROM public.vale_de_venta,
+    public.locals
+  WHERE ((date_trunc('month'::text, vale_de_venta.fecha) = date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (locals.id = vale_de_venta.id_local))
+  GROUP BY vale_de_venta.id_local, vale_de_venta.fecha, locals.nombre;
+
+
+ALTER TABLE public.ventas_mes OWNER TO postgres;
+
+--
+-- TOC entry 3311 (class 2604 OID 41293)
+-- Name: categoria id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.categoria ALTER COLUMN id SET DEFAULT nextval('public.categoria_id_seq'::regclass);
+
+
+--
+-- TOC entry 3318 (class 2604 OID 41371)
+-- Name: colors id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.colors ALTER COLUMN id SET DEFAULT nextval('public.colors_id_seq'::regclass);
+
+
+--
+-- TOC entry 3313 (class 2604 OID 41314)
+-- Name: curvaturas id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.curvaturas ALTER COLUMN id SET DEFAULT nextval('public.curvaturas_id_seq'::regclass);
+
+
+--
+-- TOC entry 3325 (class 2604 OID 41503)
+-- Name: gastos id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.gastos ALTER COLUMN id SET DEFAULT nextval('public.gastos_id_seq'::regclass);
+
+
+--
+-- TOC entry 3317 (class 2604 OID 41361)
+-- Name: locals id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.locals ALTER COLUMN id SET DEFAULT nextval('public.locals_id_seq'::regclass);
+
+
+--
+-- TOC entry 3326 (class 2604 OID 41517)
+-- Name: materia_primas id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.materia_primas ALTER COLUMN id SET DEFAULT nextval('public.materia_primas_id_seq'::regclass);
+
+
+--
+-- TOC entry 3314 (class 2604 OID 41322)
+-- Name: materials id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.materials ALTER COLUMN id SET DEFAULT nextval('public.materials_id_seq'::regclass);
+
+
+--
+-- TOC entry 3322 (class 2604 OID 41452)
+-- Name: mermas id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mermas ALTER COLUMN id SET DEFAULT nextval('public.mermas_id_seq'::regclass);
+
+
+--
+-- TOC entry 3319 (class 2604 OID 41379)
+-- Name: producto_exists id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.producto_exists ALTER COLUMN id SET DEFAULT nextval('public.producto_exists_id_seq'::regclass);
+
+
+--
+-- TOC entry 3315 (class 2604 OID 41330)
+-- Name: productos id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productos ALTER COLUMN id SET DEFAULT nextval('public.productos_id_seq'::regclass);
+
+
+--
+-- TOC entry 3323 (class 2604 OID 41476)
+-- Name: reparacions id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reparacions ALTER COLUMN id SET DEFAULT nextval('public.reparacions_id_seq'::regclass);
+
+
+--
+-- TOC entry 3312 (class 2604 OID 41301)
+-- Name: sub_categoria id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sub_categoria ALTER COLUMN id SET DEFAULT nextval('public.sub_categoria_id_seq'::regclass);
+
+
+--
+-- TOC entry 3316 (class 2604 OID 41353)
+-- Name: tallas id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tallas ALTER COLUMN id SET DEFAULT nextval('public.tallas_id_seq'::regclass);
+
+
+--
+-- TOC entry 3324 (class 2604 OID 41495)
+-- Name: tipo_gastos id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tipo_gastos ALTER COLUMN id SET DEFAULT nextval('public.tipo_gastos_id_seq'::regclass);
+
+
+--
+-- TOC entry 3320 (class 2604 OID 41408)
+-- Name: trabajadors id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.trabajadors ALTER COLUMN id SET DEFAULT nextval('public.trabajadors_id_seq'::regclass);
+
+
+--
+-- TOC entry 3321 (class 2604 OID 41423)
+-- Name: vale_de_venta id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.vale_de_venta ALTER COLUMN id SET DEFAULT nextval('public.vale_de_venta_id_seq'::regclass);
+
+
+--
+-- TOC entry 3547 (class 0 OID 41290)
+-- Dependencies: 210
+-- Data for Name: categoria; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.categoria (id, categoria, "createdAt", "updatedAt") FROM stdin;
+1	Calzado	2022-08-23 18:47:22.236-07	2022-08-23 18:47:22.236-07
+\.
+
+
+--
+-- TOC entry 3561 (class 0 OID 41368)
+-- Dependencies: 224
+-- Data for Name: colors; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.colors (id, color, "createdAt", "updatedAt") FROM stdin;
+1	Rojo	2022-08-23 18:47:20.612-07	2022-08-23 18:47:20.612-07
+\.
+
+
+--
+-- TOC entry 3551 (class 0 OID 41311)
+-- Dependencies: 214
+-- Data for Name: curvaturas; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.curvaturas (id, curvatura, "createdAt", "updatedAt") FROM stdin;
+1	Mujer	2022-08-23 18:47:17.689-07	2022-08-23 18:47:17.689-07
+2	Hombre	2022-08-29 00:49:12.52-07	2022-08-29 00:49:12.52-07
+\.
+
+
+--
+-- TOC entry 3575 (class 0 OID 41500)
+-- Dependencies: 238
+-- Data for Name: gastos; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.gastos (id, fecha, monto, descripcion, "createdAt", "updatedAt", id_tipogasto) FROM stdin;
+2	2022-09-01	13	sad	2022-09-01 02:32:00.35-07	2022-09-01 02:32:00.35-07	1
+\.
+
+
+--
+-- TOC entry 3559 (class 0 OID 41358)
+-- Dependencies: 222
+-- Data for Name: locals; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.locals (id, direccion, nombre, trabajadores, tipo, "createdAt", "updatedAt") FROM stdin;
+1	Matanzas, JagueyW, Calle 36es	Tienda Jaguey	0	0	2022-08-23 18:48:17.787-07	2022-08-29 19:59:59.4-07
+\.
+
+
+--
+-- TOC entry 3577 (class 0 OID 41514)
+-- Dependencies: 240
+-- Data for Name: materia_primas; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.materia_primas (id, materia_prima, "createdAt", "updatedAt") FROM stdin;
+\.
+
+
+--
+-- TOC entry 3553 (class 0 OID 41319)
+-- Dependencies: 216
+-- Data for Name: materials; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.materials (id, material, "createdAt", "updatedAt") FROM stdin;
+1	Cuero	2022-08-23 18:47:18.812-07	2022-08-23 18:47:18.812-07
+\.
+
+
+--
+-- TOC entry 3569 (class 0 OID 41449)
+-- Dependencies: 232
+-- Data for Name: mermas; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.mermas (id, costo, unidades, descripcion, valor, fecha, "createdAt", "updatedAt", id_producto, id_trabajador, id_local) FROM stdin;
+1	12	1	(M) 	12	2022-08-29 17:00:00-07	2022-08-29 20:31:29.905-07	2022-08-29 20:31:29.905-07	1	\N	\N
+\.
+
+
+--
+-- TOC entry 3563 (class 0 OID 41376)
+-- Dependencies: 226
+-- Data for Name: producto_exists; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.producto_exists (id, descripcion, costo, precio, comision, merma_c, total, almacen, area_de_venta, "createdAt", "updatedAt", id_producto, id_talla, id_local, id_color) FROM stdin;
+2	sdasd	12	12	12	f	10	10	0	2022-08-29 20:21:50.659-07	2022-09-01 02:31:28.148-07	1	1	1	1
+\.
+
+
+--
+-- TOC entry 3555 (class 0 OID 41327)
+-- Dependencies: 218
+-- Data for Name: productos; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.productos (id, "createdAt", "updatedAt", id_subcategoria, id_curvatura, id_material) FROM stdin;
+1	2022-08-23 18:49:42.438-07	2022-08-23 18:49:42.438-07	1	1	1
+\.
+
+
+--
+-- TOC entry 3571 (class 0 OID 41473)
+-- Dependencies: 234
+-- Data for Name: reparacions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.reparacions (id, contacto, unidades, descripcion, fecha, "createdAt", "updatedAt", id_producto, id_local) FROM stdin;
+\.
+
+
+--
+-- TOC entry 3549 (class 0 OID 41298)
+-- Dependencies: 212
+-- Data for Name: sub_categoria; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.sub_categoria (id, sub_categoria, "createdAt", "updatedAt", id_categoria) FROM stdin;
+1	Mocasines	2022-08-23 18:47:32.778-07	2022-08-23 18:47:32.778-07	1
+\.
+
+
+--
+-- TOC entry 3557 (class 0 OID 41350)
+-- Dependencies: 220
+-- Data for Name: tallas; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.tallas (id, talla, "createdAt", "updatedAt") FROM stdin;
+1	35	2022-08-23 18:47:19.709-07	2022-08-23 18:47:19.709-07
+\.
+
+
+--
+-- TOC entry 3573 (class 0 OID 41492)
+-- Dependencies: 236
+-- Data for Name: tipo_gastos; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.tipo_gastos (id, tipo_gasto, "createdAt", "updatedAt") FROM stdin;
+1	Ghg	2022-08-29 21:44:18.102-07	2022-08-29 21:44:18.102-07
+\.
+
+
+--
+-- TOC entry 3565 (class 0 OID 41405)
+-- Dependencies: 228
+-- Data for Name: trabajadors; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.trabajadors (id, ci, direccion, nombre, primer_apellido, segundo_apellido, contacto, salario_base, "createdAt", "updatedAt", id_local) FROM stdin;
+1	99080100702	calle 36	Luis Raul	Alfonso	Caballero	55432748	100	2022-08-23 18:49:05.384-07	2022-08-29 21:52:27.506-07	1
+\.
+
+
+--
+-- TOC entry 3567 (class 0 OID 41420)
+-- Dependencies: 230
+-- Data for Name: vale_de_venta; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.vale_de_venta (id, fecha, descripcion, costo, precio, comision, "createdAt", "updatedAt", id_producto, id_trabajador, id_local, id_color) FROM stdin;
+1	2022-08-23 18:55:38.513-07	12	12	110	1	2022-08-23 18:55:38.514-07	2022-08-23 18:55:38.514-07	1	\N	1	1
+2	2022-08-23 19:00:54.66-07	12	12	110	1	2022-08-23 19:00:54.664-07	2022-08-23 19:00:54.664-07	1	\N	1	1
+3	2022-08-23 19:06:42.698-07	12	12	110	10	2022-08-23 19:06:42.701-07	2022-08-23 19:06:42.701-07	1	1	1	1
+4	2022-08-23 23:29:45.208-07	12	12	110	10	2022-08-23 23:29:45.21-07	2022-08-23 23:29:45.21-07	1	1	1	1
+5	2022-11-24 00:22:23.304-08	12	12	110	10	2022-11-24 00:22:23.304-08	2022-11-24 00:22:23.304-08	1	1	1	1
+6	2022-09-01 02:31:12.7-07	sdasd	12	12	12	2022-09-01 02:31:12.705-07	2022-09-01 02:31:12.705-07	1	1	1	1
+\.
+
+
+--
+-- TOC entry 3599 (class 0 OID 0)
+-- Dependencies: 209
+-- Name: categoria_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.categoria_id_seq', 2, true);
+
+
+--
+-- TOC entry 3600 (class 0 OID 0)
+-- Dependencies: 223
+-- Name: colors_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.colors_id_seq', 2, true);
+
+
+--
+-- TOC entry 3601 (class 0 OID 0)
+-- Dependencies: 213
+-- Name: curvaturas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.curvaturas_id_seq', 34, true);
+
+
+--
+-- TOC entry 3602 (class 0 OID 0)
+-- Dependencies: 237
+-- Name: gastos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.gastos_id_seq', 33, true);
+
+
+--
+-- TOC entry 3603 (class 0 OID 0)
+-- Dependencies: 221
+-- Name: locals_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.locals_id_seq', 34, true);
+
+
+--
+-- TOC entry 3604 (class 0 OID 0)
+-- Dependencies: 239
+-- Name: materia_primas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.materia_primas_id_seq', 1, false);
+
+
+--
+-- TOC entry 3605 (class 0 OID 0)
+-- Dependencies: 215
+-- Name: materials_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.materials_id_seq', 1, true);
+
+
+--
+-- TOC entry 3606 (class 0 OID 0)
+-- Dependencies: 231
+-- Name: mermas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.mermas_id_seq', 33, true);
+
+
+--
+-- TOC entry 3607 (class 0 OID 0)
+-- Dependencies: 225
+-- Name: producto_exists_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.producto_exists_id_seq', 34, true);
+
+
+--
+-- TOC entry 3608 (class 0 OID 0)
+-- Dependencies: 217
+-- Name: productos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.productos_id_seq', 1, true);
+
+
+--
+-- TOC entry 3609 (class 0 OID 0)
+-- Dependencies: 233
+-- Name: reparacions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.reparacions_id_seq', 1, false);
+
+
+--
+-- TOC entry 3610 (class 0 OID 0)
+-- Dependencies: 211
+-- Name: sub_categoria_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.sub_categoria_id_seq', 1, true);
+
+
+--
+-- TOC entry 3611 (class 0 OID 0)
+-- Dependencies: 219
+-- Name: tallas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.tallas_id_seq', 1, true);
+
+
+--
+-- TOC entry 3612 (class 0 OID 0)
+-- Dependencies: 235
+-- Name: tipo_gastos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.tipo_gastos_id_seq', 33, true);
+
+
+--
+-- TOC entry 3613 (class 0 OID 0)
+-- Dependencies: 227
+-- Name: trabajadors_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.trabajadors_id_seq', 34, true);
+
+
+--
+-- TOC entry 3614 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: vale_de_venta_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.vale_de_venta_id_seq', 38, true);
+
+
+--
+-- TOC entry 3329 (class 2606 OID 41295)
+-- Name: categoria categoria_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.categoria
+    ADD CONSTRAINT categoria_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3350 (class 2606 OID 41373)
+-- Name: colors colors_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.colors
+    ADD CONSTRAINT colors_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3335 (class 2606 OID 41316)
+-- Name: curvaturas curvaturas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.curvaturas
+    ADD CONSTRAINT curvaturas_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3366 (class 2606 OID 41507)
+-- Name: gastos gastos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.gastos
+    ADD CONSTRAINT gastos_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3347 (class 2606 OID 41365)
+-- Name: locals locals_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.locals
+    ADD CONSTRAINT locals_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3369 (class 2606 OID 41519)
+-- Name: materia_primas materia_primas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.materia_primas
+    ADD CONSTRAINT materia_primas_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3338 (class 2606 OID 41324)
+-- Name: materials materials_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.materials
+    ADD CONSTRAINT materials_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3359 (class 2606 OID 41456)
+-- Name: mermas mermas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mermas
+    ADD CONSTRAINT mermas_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3352 (class 2606 OID 41383)
+-- Name: producto_exists producto_exists_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.producto_exists
+    ADD CONSTRAINT producto_exists_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3341 (class 2606 OID 41332)
+-- Name: productos productos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productos
+    ADD CONSTRAINT productos_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3361 (class 2606 OID 41480)
+-- Name: reparacions reparacions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reparacions
+    ADD CONSTRAINT reparacions_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3331 (class 2606 OID 41303)
+-- Name: sub_categoria sub_categoria_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sub_categoria
+    ADD CONSTRAINT sub_categoria_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3343 (class 2606 OID 41355)
+-- Name: tallas tallas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tallas
+    ADD CONSTRAINT tallas_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3363 (class 2606 OID 41497)
+-- Name: tipo_gastos tipo_gastos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tipo_gastos
+    ADD CONSTRAINT tipo_gastos_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3355 (class 2606 OID 41412)
+-- Name: trabajadors trabajadors_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.trabajadors
+    ADD CONSTRAINT trabajadors_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3357 (class 2606 OID 41427)
+-- Name: vale_de_venta vale_de_venta_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.vale_de_venta
+    ADD CONSTRAINT vale_de_venta_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3327 (class 1259 OID 41296)
+-- Name: categoria_categoria; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX categoria_categoria ON public.categoria USING btree (categoria);
+
+
+--
+-- TOC entry 3348 (class 1259 OID 41374)
+-- Name: colors_color; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX colors_color ON public.colors USING btree (color);
+
+
+--
+-- TOC entry 3333 (class 1259 OID 41317)
+-- Name: curvaturas_curvatura; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX curvaturas_curvatura ON public.curvaturas USING btree (curvatura);
+
+
+--
+-- TOC entry 3345 (class 1259 OID 41366)
+-- Name: locals_direccion; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX locals_direccion ON public.locals USING btree (direccion);
+
+
+--
+-- TOC entry 3367 (class 1259 OID 41520)
+-- Name: materia_primas_materia_prima; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX materia_primas_materia_prima ON public.materia_primas USING btree (materia_prima);
+
+
+--
+-- TOC entry 3336 (class 1259 OID 41325)
+-- Name: materials_material; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX materials_material ON public.materials USING btree (material);
+
+
+--
+-- TOC entry 3339 (class 1259 OID 41348)
+-- Name: productos_id_curvatura_id_material_id_subcategoria; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX productos_id_curvatura_id_material_id_subcategoria ON public.productos USING btree (id_curvatura, id_material, id_subcategoria);
+
+
+--
+-- TOC entry 3332 (class 1259 OID 41309)
+-- Name: sub_categoria_sub_categoria; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX sub_categoria_sub_categoria ON public.sub_categoria USING btree (sub_categoria);
+
+
+--
+-- TOC entry 3344 (class 1259 OID 41356)
+-- Name: tallas_talla; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX tallas_talla ON public.tallas USING btree (talla);
+
+
+--
+-- TOC entry 3364 (class 1259 OID 41498)
+-- Name: tipo_gastos_tipo_gasto; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX tipo_gastos_tipo_gasto ON public.tipo_gastos USING btree (tipo_gasto);
+
+
+--
+-- TOC entry 3353 (class 1259 OID 41418)
+-- Name: trabajadors_ci; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX trabajadors_ci ON public.trabajadors USING btree (ci);
+
+
+--
+-- TOC entry 3388 (class 2606 OID 41508)
+-- Name: gastos gastos_id_tipogasto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.gastos
+    ADD CONSTRAINT gastos_id_tipogasto_fkey FOREIGN KEY (id_tipogasto) REFERENCES public.tipo_gastos(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3385 (class 2606 OID 41467)
+-- Name: mermas mermas_id_local_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mermas
+    ADD CONSTRAINT mermas_id_local_fkey FOREIGN KEY (id_local) REFERENCES public.locals(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3383 (class 2606 OID 41457)
+-- Name: mermas mermas_id_producto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mermas
+    ADD CONSTRAINT mermas_id_producto_fkey FOREIGN KEY (id_producto) REFERENCES public.productos(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3384 (class 2606 OID 41462)
+-- Name: mermas mermas_id_trabajador_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mermas
+    ADD CONSTRAINT mermas_id_trabajador_fkey FOREIGN KEY (id_trabajador) REFERENCES public.trabajadors(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3377 (class 2606 OID 41399)
+-- Name: producto_exists producto_exists_id_color_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.producto_exists
+    ADD CONSTRAINT producto_exists_id_color_fkey FOREIGN KEY (id_color) REFERENCES public.colors(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3376 (class 2606 OID 41394)
+-- Name: producto_exists producto_exists_id_local_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.producto_exists
+    ADD CONSTRAINT producto_exists_id_local_fkey FOREIGN KEY (id_local) REFERENCES public.locals(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3374 (class 2606 OID 41384)
+-- Name: producto_exists producto_exists_id_producto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.producto_exists
+    ADD CONSTRAINT producto_exists_id_producto_fkey FOREIGN KEY (id_producto) REFERENCES public.productos(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3375 (class 2606 OID 41389)
+-- Name: producto_exists producto_exists_id_talla_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.producto_exists
+    ADD CONSTRAINT producto_exists_id_talla_fkey FOREIGN KEY (id_talla) REFERENCES public.tallas(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3372 (class 2606 OID 41338)
+-- Name: productos productos_id_curvatura_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productos
+    ADD CONSTRAINT productos_id_curvatura_fkey FOREIGN KEY (id_curvatura) REFERENCES public.curvaturas(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3373 (class 2606 OID 41343)
+-- Name: productos productos_id_material_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productos
+    ADD CONSTRAINT productos_id_material_fkey FOREIGN KEY (id_material) REFERENCES public.materials(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3371 (class 2606 OID 41333)
+-- Name: productos productos_id_subcategoria_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productos
+    ADD CONSTRAINT productos_id_subcategoria_fkey FOREIGN KEY (id_subcategoria) REFERENCES public.sub_categoria(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3387 (class 2606 OID 41486)
+-- Name: reparacions reparacions_id_local_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reparacions
+    ADD CONSTRAINT reparacions_id_local_fkey FOREIGN KEY (id_local) REFERENCES public.locals(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3386 (class 2606 OID 41481)
+-- Name: reparacions reparacions_id_producto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reparacions
+    ADD CONSTRAINT reparacions_id_producto_fkey FOREIGN KEY (id_producto) REFERENCES public.productos(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3370 (class 2606 OID 41304)
+-- Name: sub_categoria sub_categoria_id_categoria_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sub_categoria
+    ADD CONSTRAINT sub_categoria_id_categoria_fkey FOREIGN KEY (id_categoria) REFERENCES public.categoria(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3378 (class 2606 OID 41413)
+-- Name: trabajadors trabajadors_id_local_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.trabajadors
+    ADD CONSTRAINT trabajadors_id_local_fkey FOREIGN KEY (id_local) REFERENCES public.locals(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3379 (class 2606 OID 41443)
+-- Name: vale_de_venta vale_de_venta_id_color_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.vale_de_venta
+    ADD CONSTRAINT vale_de_venta_id_color_fkey FOREIGN KEY (id_color) REFERENCES public.colors(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3382 (class 2606 OID 41438)
+-- Name: vale_de_venta vale_de_venta_id_local_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.vale_de_venta
+    ADD CONSTRAINT vale_de_venta_id_local_fkey FOREIGN KEY (id_local) REFERENCES public.locals(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3380 (class 2606 OID 41428)
+-- Name: vale_de_venta vale_de_venta_id_producto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.vale_de_venta
+    ADD CONSTRAINT vale_de_venta_id_producto_fkey FOREIGN KEY (id_producto) REFERENCES public.productos(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 3381 (class 2606 OID 41433)
+-- Name: vale_de_venta vale_de_venta_id_trabajador_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.vale_de_venta
+    ADD CONSTRAINT vale_de_venta_id_trabajador_fkey FOREIGN KEY (id_trabajador) REFERENCES public.trabajadors(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+-- Completed on 2022-09-01 04:48:51
+
+--
+-- PostgreSQL database dump complete
+--
+

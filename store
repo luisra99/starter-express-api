@@ -5,7 +5,7 @@
 -- Dumped from database version 14.2
 -- Dumped by pg_dump version 14.2
 
--- Started on 2022-09-01 04:48:50
+-- Started on 2022-09-01 05:21:19
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -727,6 +727,42 @@ ALTER SEQUENCE public.reparacions_id_seq OWNED BY public.reparacions.id;
 
 
 --
+-- TOC entry 250 (class 1259 OID 41592)
+-- Name: segundo_trimestre; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.segundo_trimestre AS
+ SELECT ventas_year.mes,
+    sum(ventas_year.importe) AS importe,
+    sum(ventas_year.comision) AS comision,
+    ventas_year.id_local,
+    ventas_year.nombre
+   FROM public.ventas_year
+  WHERE ((ventas_year.mes >= (4)::double precision) AND (ventas_year.mes <= (6)::double precision))
+  GROUP BY ventas_year.id_local, ventas_year.nombre, ventas_year.mes;
+
+
+ALTER TABLE public.segundo_trimestre OWNER TO postgres;
+
+--
+-- TOC entry 251 (class 1259 OID 41596)
+-- Name: tercer_trimestre; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.tercer_trimestre AS
+ SELECT ventas_year.mes,
+    sum(ventas_year.importe) AS importe,
+    sum(ventas_year.comision) AS comision,
+    ventas_year.id_local,
+    ventas_year.nombre
+   FROM public.ventas_year
+  WHERE ((ventas_year.mes >= (7)::double precision) AND (ventas_year.mes <= (9)::double precision))
+  GROUP BY ventas_year.id_local, ventas_year.nombre, ventas_year.mes;
+
+
+ALTER TABLE public.tercer_trimestre OWNER TO postgres;
+
+--
 -- TOC entry 244 (class 1259 OID 41536)
 -- Name: ventas_hoy; Type: VIEW; Schema: public; Owner: postgres
 --
@@ -779,18 +815,22 @@ CREATE VIEW public.ventas_semana AS
 ALTER TABLE public.ventas_semana OWNER TO postgres;
 
 --
--- TOC entry 258 (class 1259 OID 41655)
+-- TOC entry 258 (class 1259 OID 49776)
 -- Name: resumen; Type: VIEW; Schema: public; Owner: postgres
 --
 
 CREATE VIEW public.resumen AS
- SELECT sum(ventas_hoy.importe) AS importe,
-    sum(ventas_hoy.comision) AS comision,
+ SELECT ( SELECT sum(ventas_hoy_1.importe) AS sum
+           FROM public.ventas_hoy ventas_hoy_1) AS importe,
+    ( SELECT sum(ventas_hoy_1.comision) AS sum
+           FROM public.ventas_hoy ventas_hoy_1) AS comision,
     ( SELECT sum(gastos.monto) AS sum
            FROM public.gastos
           WHERE (date_trunc('day'::text, (gastos.fecha)::timestamp with time zone) = date_trunc('day'::text, (CURRENT_DATE)::timestamp with time zone))) AS gastos,
-    sum(ventas_semana.importe) AS importew,
-    sum(ventas_semana.comision) AS comisionw,
+    ( SELECT sum(ventas_semana_1.importe) AS sum
+           FROM public.ventas_semana ventas_semana_1) AS importew,
+    ( SELECT sum(ventas_semana_1.comision) AS sum
+           FROM public.ventas_semana ventas_semana_1) AS comisionw,
     ( SELECT sum(gastos.monto) AS sum
            FROM public.gastos
           WHERE (date_trunc('week'::text, (gastos.fecha)::timestamp with time zone) = date_trunc('week'::text, (CURRENT_DATE)::timestamp with time zone))) AS gastosw,
@@ -836,38 +876,32 @@ CREATE VIEW public.resumen AS
     ( SELECT ventas_semana_1.comision
            FROM public.ventas_semana ventas_semana_1
           WHERE (ventas_semana_1.weekday = (7)::numeric)) AS cd,
-    sum(ventas_year.importe) AS importey,
-    sum(ventas_year.comision) AS comisiony,
+    ( SELECT sum(ventas_year_1.importe) AS sum
+           FROM public.ventas_year ventas_year_1) AS importey,
+    ( SELECT sum(ventas_year_1.comision) AS sum
+           FROM public.ventas_year ventas_year_1) AS comisiony,
     ( SELECT sum(gastos.monto) AS sum
            FROM public.gastos
           WHERE (date_trunc('year'::text, (gastos.fecha)::timestamp with time zone) = date_trunc('year'::text, (CURRENT_DATE)::timestamp with time zone))) AS gastosy,
-    sum(cuarto_trimestre.importe) AS ctimporte,
-    sum(cuarto_trimestre.comision) AS ctcomision
-   FROM public.ventas_hoy,
-    public.ventas_semana,
-    public.ventas_year,
-    public.cuarto_trimestre;
+    ( SELECT sum(cuarto_trimestre_1.importe) AS sum
+           FROM public.cuarto_trimestre cuarto_trimestre_1) AS ctimporte,
+    ( SELECT sum(cuarto_trimestre_1.comision) AS sum
+           FROM public.cuarto_trimestre cuarto_trimestre_1) AS ctcomision,
+    ( SELECT sum(segundo_trimestre_1.importe) AS sum
+           FROM public.segundo_trimestre segundo_trimestre_1) AS stimporte,
+    ( SELECT sum(segundo_trimestre_1.comision) AS sum
+           FROM public.segundo_trimestre segundo_trimestre_1) AS stcomision,
+    ( SELECT sum(tercer_trimestre_1.importe) AS sum
+           FROM public.tercer_trimestre tercer_trimestre_1) AS ttimporte,
+    ( SELECT sum(tercer_trimestre_1.comision) AS sum
+           FROM public.tercer_trimestre tercer_trimestre_1) AS ttcomision,
+    ( SELECT sum(primer_trimestre_1.importe) AS sum
+           FROM public.primer_trimestre primer_trimestre_1) AS ptimporte,
+    ( SELECT sum(primer_trimestre_1.comision) AS sum
+           FROM public.primer_trimestre primer_trimestre_1) AS ptcomision;
 
 
 ALTER TABLE public.resumen OWNER TO postgres;
-
---
--- TOC entry 250 (class 1259 OID 41592)
--- Name: segundo_trimestre; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.segundo_trimestre AS
- SELECT ventas_year.mes,
-    sum(ventas_year.importe) AS importe,
-    sum(ventas_year.comision) AS comision,
-    ventas_year.id_local,
-    ventas_year.nombre
-   FROM public.ventas_year
-  WHERE ((ventas_year.mes >= (4)::double precision) AND (ventas_year.mes <= (6)::double precision))
-  GROUP BY ventas_year.id_local, ventas_year.nombre, ventas_year.mes;
-
-
-ALTER TABLE public.segundo_trimestre OWNER TO postgres;
 
 --
 -- TOC entry 254 (class 1259 OID 41609)
@@ -935,24 +969,6 @@ ALTER TABLE public.tallas_id_seq OWNER TO postgres;
 
 ALTER SEQUENCE public.tallas_id_seq OWNED BY public.tallas.id;
 
-
---
--- TOC entry 251 (class 1259 OID 41596)
--- Name: tercer_trimestre; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.tercer_trimestre AS
- SELECT ventas_year.mes,
-    sum(ventas_year.importe) AS importe,
-    sum(ventas_year.comision) AS comision,
-    ventas_year.id_local,
-    ventas_year.nombre
-   FROM public.ventas_year
-  WHERE ((ventas_year.mes >= (7)::double precision) AND (ventas_year.mes <= (9)::double precision))
-  GROUP BY ventas_year.id_local, ventas_year.nombre, ventas_year.mes;
-
-
-ALTER TABLE public.tercer_trimestre OWNER TO postgres;
 
 --
 -- TOC entry 255 (class 1259 OID 41613)
@@ -2036,7 +2052,7 @@ ALTER TABLE ONLY public.vale_de_venta
     ADD CONSTRAINT vale_de_venta_id_trabajador_fkey FOREIGN KEY (id_trabajador) REFERENCES public.trabajadors(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
--- Completed on 2022-09-01 04:48:51
+-- Completed on 2022-09-01 05:21:19
 
 --
 -- PostgreSQL database dump complete

@@ -34,12 +34,16 @@ export const getActualidad = async (req, res) => {
 };
 export const getActualidadLocal = async (req, res) => {
   try {
-    const dia = await sequelize.query(" SELECT sum(vale_de_venta.importe) AS importe_dia,vale_de_venta.id_local, locals.nombre, sum(vale_de_venta.comision) AS comision_dia FROM vale_de_venta, locals WHERE vale_de_venta.id_local = locals.id AND vale_de_venta.fecha::date = CURRENT_DATE GROUP BY vale_de_venta.id_local, locals.nombre;");
-    const semana = await sequelize.query("SELECT * FROM importe_por_local_semana_actual");
-    const mes = await sequelize.query("SELECT * FROM importe_por_local_mes_actual");
-    const year = await sequelize.query("SELECT * FROM importe_por_local_year_actual");
-    console.log(dia)
-    res.json([dia[0],semana[0],mes[0],year[0]]);
+    res.json((await sequelize.query(" SELECT * from tiendas "))[0]);
+  } catch (error) {
+    return res
+      .status(200)
+      .json({ status: "danger", titulo: "Error", mensaje: error.message });
+  }
+};
+export const getActualidadTrabajador = async (req, res) => {
+  try {
+    res.json((await sequelize.query(" SELECT * from trabajadores "))[0]);
   } catch (error) {
     return res
       .status(200)

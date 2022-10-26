@@ -1,5 +1,7 @@
 import { Trabajador } from "../models/Trabajador.js";
+import bcrypt from 'bcrypt'
 export const getTrabajadores = async (req, res) => {
+  console.log("test")
   try {
     const trabajador = await Trabajador.findAll();
     res.json(trabajador);
@@ -31,7 +33,7 @@ export const createTrabajador = async (req, res) => {
     contacto,
     salario_base,
     ci,
-    id_local,
+    id_local,passw
   } = req.body;
   try {
     const newTrabajador = await Trabajador.create({
@@ -43,6 +45,7 @@ export const createTrabajador = async (req, res) => {
       salario_base,
       ci,
       id_local,
+      password:await bcrypt.hash(passw,10)
     });
     res.json({
       status: "success",

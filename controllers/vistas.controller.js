@@ -45,6 +45,7 @@ export const getActualidadTrabajador = async (req, res) => {
   try {
     res.json((await sequelize.query(" SELECT * from trabajadores "))[0]);
   } catch (error) {
+    console.log(error)
     return res
       .status(200)
       .json({ status: "danger", titulo: "Error", mensaje: error.message });

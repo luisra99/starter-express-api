@@ -35,6 +35,10 @@ export const Trabajador=sequelize.define('trabajador',{
     salario_base:{
         type:DataTypes.INTEGER,
         allowNull: false
+    },
+    password:{
+        type:DataTypes.STRING,
+        allowNull: false
     }
 },{
         indexes:[{
